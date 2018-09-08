@@ -1,5 +1,5 @@
 # Preparando o ambiente de desenvolvimento
-Para esse curso vamos criar uma API para locação de imóveis, para isso vamos utilizar `Python`, `Flask`, `Postgre` e algumas bibliotecas.
+Para esse curso vamos criar uma API para venda de café, para isso vamos utilizar `Python`, `Flask`, `Postgre` e algumas bibliotecas.
 Para evitar a instalação local do `Postgre` vamos utilizar um container Docker, assim como vamos instalar o `Pyenv` para gerenciar as versões do `Python` e o `Poetry` para gerenciar as dependências do nosso projeto. Como editor de texto vamos utilizar o `VSCode` e o sistema operacional base será o `Debian`.
 
 ## Instalando VSCode
