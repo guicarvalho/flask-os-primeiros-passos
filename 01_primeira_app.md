@@ -129,16 +129,16 @@ user@: curl http://localhost:5000/people
 
     a. Crie uma rota para cadastrar as pessoas (nome, idade, sexo, número e peso).
 
-    b. Crie uma rota para listar todos os usuários cadastrados, ordenado por resultado do melhor para o pior. Imprima o valor do IMC e qual a situação (confira a tabela abaixo).
+    b. Crie uma rota para listar todos os usuários cadastrados, ordenado por resultado do melhor para o pior (coluna nível quanto menor melhor). Imprima o valor do IMC e qual a situação (confira a tabela abaixo).
 
 > Para calcular o IMC divide-se o peso (em kilogramas) pela altura (ao quadrado): peso / (altura * altura).
 
-| Resultado	|   Situação|
-|---	|---
-| Abaixo de 17 | Muito abaixo do peso |
-| Entre 17 e 18,49  | Abaixo do peso |
-| Entre 18,5 e 24,99 | Peso normal |
-| Entre 25 e 29,99 | Acima do peso |
-| Entre 30 e 34,99 | Obesidade I |
-| Entre 35 e 39,99 | Obesidade II (severa) |
-| Acima de 40 | Obesidade III (mórbida) |
+| Resultado	| Situação | Nível |
+|---	|--- | ---
+| Abaixo de 17 | Muito abaixo do peso | 5 |
+| Entre 17 e 18,49  | Abaixo do peso | 1 |
+| Entre 18,5 e 24,99 | Peso normal | 0 |
+| Entre 25 e 29,99 | Acima do peso | 2 |
+| Entre 30 e 34,99 | Obesidade I | 3 |
+| Entre 35 e 39,99 | Obesidade II (severa) | 4 |
+| Acima de 40 | Obesidade III (mórbida) | 6 |
