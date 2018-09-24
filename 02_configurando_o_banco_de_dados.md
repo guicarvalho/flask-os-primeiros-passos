@@ -2,6 +2,7 @@
 Vamos configurar o banco de dados da nossa aplicação, como dissemos nos primeiros capítulos vamos construir uma aplicação para vender café online. Basicamente nossa aplicação precisa de 4 tabelas: usuário, produto, venda e produto_venda.
 
 **Usuário**
+
 | Campo | Tipo | Obrigatório | Único
 | --- | --- | --- | -- |
 | uuid | UUID | sim | sim |
@@ -13,6 +14,7 @@ Vamos configurar o banco de dados da nossa aplicação, como dissemos nos primei
 | atualizado_em | Datetime | não | não |
 
 **Produto**
+
 | Campo | Tipo | Obrigatório | Único
 | --- | --- | --- | -- |
 | uuid | UUID | sim | sim |
@@ -23,6 +25,7 @@ Vamos configurar o banco de dados da nossa aplicação, como dissemos nos primei
 | atualizado_em | Datetime | não | não |
 
 **Venda**
+
 | Campo | Tipo | Obrigatório | Único
 | --- | --- | --- | -- |
 | uuid | UUID | sim | sim |
@@ -31,6 +34,7 @@ Vamos configurar o banco de dados da nossa aplicação, como dissemos nos primei
 | criado_em | Datetime | não | não |
 
 **Produto_Venda**
+
 | Campo | Tipo | Obrigatório | Único
 | --- | --- | --- | -- |
 | uuid | UUID | sim | sim |
