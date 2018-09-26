@@ -160,7 +160,7 @@ O arquivo gerado deve se parecer com esse:
 """empty message
 
 Revision ID: 0b7627b06ae6
-Revises: 
+Revises:
 Create Date: 2018-09-24 20:58:49.182442
 
 """
@@ -227,7 +227,7 @@ def downgrade():
     op.drop_table('product')
     # ### end Alembic commands ###
 ```
-Vamos até o banco de dados e verificar se as tabelas foram criadas.
+Agora vamos executar o comando que irá de fato criar as tabelas, para que a migração seja executada usamos o comando `flask db upgrade`. Vamos até o banco de dados e verificar se as tabelas foram criadas.
 ```sh
 user@: docker exec -ti flask-course-pg psql
 root=# \c coffee_shop
@@ -301,3 +301,124 @@ assert Product.query.count() == 2
 Product.query.delete()
 >>> 2
 ```
+
+### Relacionamentos
+Para ilustrar como os relacionamentos são feitos no `SQLALchemy` vamos criar dois novos modelos `Parent` e `Child`. Vamos utiliza-los para exemplificar os 4 tipos mais comuns de relação: `One To Many`, `Many To One`, `One To One` e `Many To Many`.
+
+#### One To Many
+Um relacionamento `one to many` coloca uma `chave-estrangeira` na tabela `child` referenciando o `parent`, `relationship()` é então especificado no `parent`, como uma coleção de items representados por `child`.
+
+```python
+class Parent(db.Model):
+  __tablename__ = 'parent'
+
+  uuid = db.Column(UUID, primary_key=True)
+  children = db.relationship('Child')
+
+  def __repr__(self):
+    return f'Parent (uuid: {self.uuid})'
+
+class Child(db.Model):
+  __tablename__ = 'child'
+
+  uuid = db.Column(UUID, primary_key=True)
+  parent_uuid = db.Column(UUID, db.ForeignKey('parent.uuid'))
+
+  def __repr__(self):
+    return f'Child (uuid: {self.uuid}, parent_uuid: {self.parent_uuid})'
+```
+
+Vamos executar algumas operações no `shell` para entender como os registros estão sendo referenciados. Abra o `shell` `flask shell`.
+```python
+from uuid import uuid4
+from sqlalchemy.dialects.postgresql import UUID
+from app import db
+
+# cole o código que escrevemos acima...
+
+# Adiciona parent
+db.session.add(Parent(uuid=uuid4().hex))
+assert Parent.query.count() == 1
+
+# Recupera parent criado
+parent = Parent.query.one()
+
+# Adiciona 3 child com referencia para o parent criado acima
+db.session.add_all([Child(uuid=uuid4().hex, parent_uuid=parent.uuid) for _ in range(3)])
+assert Child.query.count() == 3
+
+# Acessa todos os child referenciados a "ele" acessando o relationship `children`
+assert len(parent.children) == 3
+print(parent.children)
+```
+
+Para estabelecer um relacionamento bidirecional em um `one-to-many`, onde o lado `oposto` é um `many-to-one`, vamos especificar um `relationship()` adicional e conectar os dois usando um parâmetro `relationship.back_populate`.
+```python
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = db.Column(UUID, primary_key=True)
+    children = db.relationship('Child', back_populates='parent')
+
+    def __repr__(self):
+        return f'Parent (uuid: {self.uuid})'
+
+
+class Child(db.Model):
+
+    __tablename__ = 'child'
+
+    uuid = db.Column(UUID, primary_key=True)
+    parent_uuid = db.Column(UUID, db.ForeignKey('parent.uuid'))
+    parent = db.relationship('Parent', back_populates='children')
+
+    def __repr__(self):
+        return f'Child (uuid: {self.uuid}, parent_uuid: {self.parent_uuid})'
+```
+
+No `shell` podemos conferir se o mapeamento reverso vou criado.
+```python
+from app import Child
+
+c1 = Child.query.first()
+print(c1.parent)
+```
+
+Alternativamente, a opção `backref` pode ser usada em um único `relationship()` ao invés de usar `back_populates`.
+```python
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = db.Column(UUID, primary_key=True)
+    children = db.relationship('Child', back_ref='parent')
+
+    def __repr__(self):
+        return f'Parent (uuid: {self.uuid})'
+
+
+class Child(db.Model):
+
+    __tablename__ = 'child'
+
+    uuid = db.Column(UUID, primary_key=True)
+    parent_uuid = db.Column(UUID, db.ForeignKey('parent.uuid'))
+
+    def __repr__(self):
+        return f'Child (uuid: {self.uuid}, parent_uuid: {self.parent_uuid})'
+```
+
+Acessando o `shell` novamente podemos ver que o resultado permanece o mesmo.
+```python
+from app import Child
+
+c1 = Child.query.first()
+print(c1.parent)
+```
+
+#### Many To One
+
+#### One To One
+
+#### Many To Many
