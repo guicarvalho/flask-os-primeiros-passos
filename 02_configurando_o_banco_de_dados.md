@@ -377,12 +377,13 @@ class Child(db.Model):
         return f'Child (uuid: {self.uuid}, parent_uuid: {self.parent_uuid})'
 ```
 
-No `shell` podemos conferir se o mapeamento reverso vou criado.
+No `shell` podemos conferir se o mapeamento reverso foi criado.
 ```python
 from app import Child
 
 c1 = Child.query.first()
 print(c1.parent)
+>>> Parent (uuid: ee6b4d53-ff6f-40a5-bf56-0044c73c8f2f)
 ```
 
 Alternativamente, a opção `backref` pode ser usada em um único `relationship()` ao invés de usar `back_populates`.
@@ -392,7 +393,7 @@ class Parent(db.Model):
     __tablename__ = 'parent'
 
     uuid = db.Column(UUID, primary_key=True)
-    children = db.relationship('Child', back_ref='parent')
+    children = db.relationship('Child', backref='parent')
 
     def __repr__(self):
         return f'Parent (uuid: {self.uuid})'
@@ -415,10 +416,236 @@ from app import Child
 
 c1 = Child.query.first()
 print(c1.parent)
+>>> Parent (uuid: ee6b4d53-ff6f-40a5-bf56-0044c73c8f2f)
 ```
 
 #### Many To One
+`Many to one` coloca uma _fk_ na tabela `parent` referenciando a tabela `child`, `relationship()` é declarado em `parent`.
+
+```python
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = db.Column(UUID, primary_key=True)
+    child_uuid = db.Column(UUID, db.ForeignKey('child.uuid'))
+    child = db.relationship('Child')
+
+
+class Child(db.Model):
+
+    __tablename__ = 'child'
+
+    uuid = db.Column(UUID, primary_key=True)
+```
+Vamos brincar um pouco no `shell`:
+
+```python
+from uuid import uuid4
+from sqlalchemy.dialects.postgresql import UUID
+from app import db, Child, Parent
+
+
+db.session.add(Parent(uuid=uuid4().hex))
+
+parent = Parent.query.first()
+parent.child = Child(uuid=uuid4().hex)
+
+db.session.commit()
+
+child = Child.query.one()
+assert parent.child.uuid == child.uuid
+```
+Novamente podemos fazer o relacionamento bidirecional adicionando um segundo `relationship()` com o parâmetro `relationship.back_populates` em ambas as direções.
+
+```python
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = db.Column(UUID, primary_key=True)
+    child_uuid = db.Column(UUID, db.ForeignKey('child.uuid'))
+    child = db.relationship('Child', back_populates='parents')
+
+
+class Child(db.Model):
+
+    __tablename__ = 'child'
+
+    uuid = db.Column(UUID, primary_key=True)
+    parents = db.relationship('Parent', back_populates='child')
+```
+No `shell` podemos conferir se o mapeamento reverso foi criado:
+
+```
+from uuid import uuid4
+from sqlalchemy.dialects.postgresql import UUID
+from app import db, Child, Parent
+
+
+parent = Parent.query.one()
+child = Child.query.one()
+
+print(parent.child)
+print(child.parents)
+>>> None
+>>> []
+
+parent.child = child
+print(child.parents)
+>>> [<Parent 69f3ad0f-fc20-4b9c-8a08-d26ecc443610>]
+```
+
+Podemos aplicar o parâmetro `backref` em um único `relationship()` como em `Parent.child`:
+
+```python
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = db.Column(UUID, primary_key=True)
+    child_uuid = db.Column(UUID, db.ForeignKey('child.uuid'))
+    child = db.relationship('Child', backref='parents')
+```
+Acessando o `shell` novamente podemos ver que o resultado permanece o mesmo.
+
+```python
+from uuid import uuid4
+from sqlalchemy.dialects.postgresql import UUID
+from app import db, Child, Parent
+
+
+parent = Parent.query.one()
+child = Child.query.one()
+
+print(parent.child)
+print(child.parents)
+>>> None
+>>> []
+
+parent.child = child
+print(child.parents)
+>>> [<Parent 69f3ad0f-fc20-4b9c-8a08-d26ecc443610>]
+```
 
 #### One To One
+O relacionamento `one-to-one` é essencialmente bidirecional e armazena uma instância da referência em ambos os lados e não uma coleção. Para que isso seja possível a _flag_ `uselist` indica a substituição da coleção `many` por uma instância no lado do `relationship`. Para converter `one-to-many` em `one-to-one`:
+
+```python
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = Column(UUID, primary_key=True)
+    child = db.relationship('Child', uselist=False, back_populates='parent')
+
+
+class Child(Base):
+
+    __tablename__ = 'child'
+
+    uuid = Column(UUID, primary_key=True)
+    parent_uuid = Column(UUID, ForeignKey('parent.uuid'))
+    parent = db.relationship('Parent', back_populates='child')
+```
+Ou para `many-to-one`:
+
+```python
+class Parent(db.Model):
+
+   __tablename__ = 'parent'
+
+   uuid = db.Column(UUID, primary_key=True)
+   child_uuid = db.Column(UUID, db.ForeignKey('child.uuid'))
+   child = db.relationship('Child', back_populates='parent')
+
+
+class Child(db.Model):
+
+    __tablename__ = 'child'
+
+    uuid = db.Column(UUID, primary_key=True)
+    parent = db.relationship('Parent', back_populates='child', uselist=False)
+```
+Como sempre, o `relationship.backref` e a função `backref` podem ser utilizadas ao invés de `relationship.back_populates`. Para usar `uselist` na `backref` use a função `backref()`:
+
+```python
+from sqlalchemy.orm import backref
+
+
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = db.Column(UUID, primary_key=True)
+    child_uuid = db.Column(UUID, ForeignKey('child.uuid'))
+    child = db.relationship('Child', backref=backref('parent', uselist=False))
+```
 
 #### Many To Many
+`Many to Many` adiciona uma tabela de associação entre duas classes. A tabela de associação é indicada pelo argumento `secondary` para `relationship`. Geralmente, a `Table` usa o objeto `MetaData` associado com a _Classe Base Declarativa_ para que as diretivas `ForeignKey` possam localizar as tabelas remotas com as quais vincular:
+
+```python
+association_table = db.Table(
+    'association',
+    db.Column('parent_uuid', UUID, db.ForeignKey('parent.uuid')),
+    db.Column('child_uuid', UUID, db.ForeignKey('child.uuid'))
+)
+
+
+class Parent(db.Model):
+
+    __tablename__ = 'parent'
+
+    uuid = db.Column(UUID, primary_key=True)
+    children = db.relationship('Child', secondary=association_table, backref='parents')
+
+
+class Child(db.Model):
+
+    __tablename__ = 'child'
+
+    uuid = db.Column(UUID, primary_key=True)
+```
+
+Vamos fazer algumas operações no `shell`:
+```python
+from uuid import uuid4
+from sqlalchemy.dialects.postgresql import UUID
+from app import db, Child, Parent
+
+
+p1 = Parent(uuid=uuid4().hex)
+p2 = Parent(uuid=uuid4().hex)
+p3 = Parent(uuid=uuid4().hex)
+
+c1 = Child(uuid=uuid=uuid4().hex)
+c2 = Child(uuid=uuid=uuid4().hex)
+c3 = Child(uuid=uuid=uuid4().hex)
+
+db.session.add_all([p1, p2, p3, c1, c2, c3])
+
+p1.children
+>>> []
+
+c1.parents
+>>> []
+
+p1.children.append(c1)
+p1.children.append(c3)
+
+c1.parents
+>>> [<Parent (transient 140653433214792)>]
+
+p1.children
+>>> [<Child (transient 140653402295040)>, <Child (transient 140653402313000)>]
+
+db.session.commit()
+
+print(Child.query.filter(Child.parents.any(Parent.uuid.in_(['2244b4f8-2eb0-40be-ab63-2cde455b7659']))))
+>>> SELECT child.uuid AS child_uuid
+FROM child
+WHERE EXISTS (SELECT 1
+FROM association, parent
+WHERE child.uuid = association.child_uuid AND parent.uuid = association.parent_uuid AND parent.uuid IN (%(uuid_1)s))
+```
