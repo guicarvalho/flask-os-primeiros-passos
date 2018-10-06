@@ -1,0 +1,5 @@
+{
+    "python.pythonPath": "/home/guilherme/.cache/pypoetry/virtualenvs/coffee-shop-py3.7",
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true
+}
