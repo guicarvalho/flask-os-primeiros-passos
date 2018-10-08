@@ -11,7 +11,7 @@ from werkzeug.exceptions import HTTPException, default_exceptions
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://root:root@localhost:9988/coffee_shop'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://root:root@database:5432/coffee_shop'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
 app.config['JWT_SECRET_KEY'] = 'my-secret-key'
