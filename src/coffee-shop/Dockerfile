@@ -11,8 +11,8 @@ RUN apk --update --upgrade add --no-cache --virtual .build-dep \
     ca-certificates gcc postgresql-dev linux-headers musl-dev \
     && pip install poetry && poetry install --no-dev
 
-ENV FLASK_APP=coffee_shop/app.py
+ENV FLASK_APP="coffee_shop:create_app"
 ENV FLASK_ENV=production
 
-CMD poetry run flask run
+CMD poetry run flask run --host=0.0.0.0
 
