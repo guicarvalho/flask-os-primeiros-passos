@@ -1,30 +1,21 @@
-from logging.config import dictConfig
+from http import HTTPStatus
 
-from flask import Flask
+import marshmallow
+from flask import Flask, jsonify
+from flask_jwt_extended import JWTManager
+from flask_marshmallow import Marshmallow
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import NoResultFound
 
-from .auth import jwt
-from .models import db, migrate
+from .core.exceptions import InvalidUsage
 
 
-dictConfig({
-    'version': 1,
-    'formatters': {
-        'default': {
-            'format': '[%(asctime)s] %(levelname)s: %(message)s'
-        }
-    },
-    'handlers': {
-        'wsgi': {
-            'class': 'logging.StreamHandler',
-            'stream': 'ext://flask.logging.wsgi_errors_stream',
-            'formatter': 'default'
-        }
-    },
-    'root': {
-        'level': 'DEBUG',
-        'handlers': ['wsgi']
-    }
-})
+db = SQLAlchemy()
+migrate = Migrate()
+jwt = JWTManager()
+ma = Marshmallow()
 
 
 def create_app(enviroment='Development'):
@@ -34,9 +25,26 @@ def create_app(enviroment='Development'):
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
+    ma.init_app(app)
 
-    from .views import root
-    app.register_blueprint(root)
+    from .auth.views import auth_bp
+    from .product.views import product_bp
+    from .sale.views import sale_bp
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(product_bp)
+    app.register_blueprint(sale_bp)
+
+    @app.errorhandler(marshmallow.ValidationError)
+    def handle_validation_error(error):
+        return jsonify(error.messages), HTTPStatus.BAD_REQUEST
+
+    @app.errorhandler(IntegrityError)
+    @app.errorhandler(NoResultFound)
+    def handle_no_result_found(error):
+        return jsonify(message=error.args[0]), HTTPStatus.CONFLICT
+
+    @app.errorhandler(InvalidUsage)
+    def handle_invalid_usage_error(error):
+        return jsonify(error.message), error.status_code
 
     return app
-
